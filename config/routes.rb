@@ -33,7 +33,9 @@ Rails.application.routes.draw do
         resources :order_items,           :only => [:create, :index, :show]
       end
       resources :order_items,           :only => [:index, :show] do
-        resources :progress_messages,     :only => [:index]
+        resources :progress_messages,     :only => [:index, :destroy] do
+          post :restore, :to => "progress_messages#restore"
+        end
         resources :approval_requests,     :only => [:index]
       end
       post '/portfolios/:portfolio_id/portfolio_items', :to => "portfolios#add_portfolio_item_to_portfolio", :as => 'add_portfolio_item_to_portfolio'
