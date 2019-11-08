@@ -55,7 +55,7 @@ describe PortfolioItem do
         .to_return(:status => 200, :body => "", :headers => {"Content-type" => "application/json"})
 
       with_modified_env(:APPROVAL_URL => "http://localhost") do
-        ManageIQ::API::Common::Request.with_request(default_request) { example.call }
+        Insights::API::Common::Request.with_request(default_request) { example.call }
       end
     end
 

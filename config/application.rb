@@ -54,7 +54,7 @@ module Catalog
       end
     end
 
-    ManageIQ::API::Common::Logging.activate(config)
-    ManageIQ::API::Common::Metrics.activate(config, "catalog_api")
+    Insights::API::Common::Logging.activate(config)
+    Insights::API::Common::Metrics.activate(config, "catalog_api")
   end
 end

@@ -6,7 +6,7 @@ namespace :portfolios do
     raise "Please provide a user yaml file" unless ENV['USER_FILE']
 
     request = create_request(ENV['USER_FILE'])
-    ManageIQ::API::Common::Request.with_request(request) do |current|
+    Insights::API::Common::Request.with_request(request) do |current|
       delete_roles(current.user)
     end
   end
