@@ -294,21 +294,24 @@ describe 'Portfolios API' do
         expect(json['owner']).to eq default_username
       end
     end
+  end
 
-
+  describe "POST /portfolios/:id/share" do
     shared_examples_for "#shared_test" do
-      it "portfolio" do
-        with_modified_env :APP_NAME => app_name do
-          allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
-          allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
-          post "#{api}/portfolios/#{shared_portfolio.id}/share", :params => attributes, :headers => default_headers
-          expect(response).to have_http_status(http_status)
-        end
+      before do
+        allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
+        allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
+      end
+
+      it "returns the correct status" do
+        post "#{api}/portfolios/#{shared_portfolio.id}/share", :params => attributes, :headers => default_headers
+        expect(response).to have_http_status(http_status)
       end
     end
 
     context 'share' do
       include_context "sharing_objects"
+
       it_behaves_like "#shared_test"
     end
 
@@ -332,42 +335,64 @@ describe 'Portfolios API' do
         it_behaves_like "#shared_test"
       end
     end
+  end
 
+  describe "POST /portfolios/:id/unshare" do
     context 'unshare' do
       include_context "sharing_objects"
+      include_context "access_control_objects"
+
       let(:unsharing_attributes) { {:group_uuids => group_uuids, :permissions => permissions} }
-      it "portfolio" do
-        with_modified_env :APP_NAME => app_name do
-          allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
-          allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
-          ace1
-          ace2
-          ace3
-          expect(shared_portfolio.access_control_entries.count).to eq(3)
-          post "#{api}/portfolios/#{shared_portfolio.id}/unshare", :params => unsharing_attributes, :headers => default_headers
-          shared_portfolio.reload
-          expect(response).to have_http_status(204)
-          expect(shared_portfolio.access_control_entries.count).to eq(0)
-        end
+
+      before do
+        allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
+        allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
+      end
+
+      it "removes the access control entries from the portfolio" do
+        expect(shared_portfolio.access_control_entries.count).to eq(3)
+        post "#{api}/portfolios/#{shared_portfolio.id}/unshare", :params => unsharing_attributes, :headers => default_headers
+        shared_portfolio.reload
+        expect(shared_portfolio.access_control_entries.count).to eq(0)
+      end
+
+      it "returns a 204" do
+        post "#{api}/portfolios/#{shared_portfolio.id}/unshare", :params => unsharing_attributes, :headers => default_headers
+        expect(response).to have_http_status(204)
       end
     end
+  end
 
+  describe "GET /portfolios/:id/share_info" do
     context 'share_info' do
       include_context "sharing_objects"
-      it "portfolio" do
-        with_modified_env :APP_NAME => app_name do
-          allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
-          allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
-          ace1
-          ace2
-          ace3
-          get "#{api}/portfolios/#{shared_portfolio.id}/share_info", :headers => default_headers
-          expect(response).to have_http_status(200)
-          expect(json.pluck('group_uuid')).to match_array(group_uuids)
-        end
+      include_context "access_control_objects"
+
+      before do
+        allow(rs_class).to receive(:call).with(RBACApiClient::GroupApi).and_yield(api_instance)
+        allow(Insights::API::Common::RBAC::Service).to receive(:paginate).with(api_instance, :list_groups, {}).and_return(groups)
+        get "#{api}/portfolios/#{shared_portfolio.id}/share_info", :headers => default_headers
+      end
+
+      it "returns a 200" do
+        expect(response).to have_http_status(200)
+      end
+
+      it "returns json with group names" do
+        expect(json.pluck('group_name')).to match_array(%w(group1 group2 group3))
+      end
+
+      it "returns json with group uuids" do
+        expect(json.pluck('group_uuid')).to match_array(group_uuids)
+      end
+
+      it "returns json with permissions" do
+        expect(json.pluck('permissions')).to eq([["read"], ["read"], ["read"]])
       end
     end
+  end
 
+  describe "POST /portfolios/:id/copy" do
     context "copy without specifying name" do
       before do
         post "#{api}/portfolios/#{portfolio.id}/copy", :headers => default_headers
