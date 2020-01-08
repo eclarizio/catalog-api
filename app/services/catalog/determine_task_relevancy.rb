@@ -17,6 +17,8 @@ module Catalog
         if @task.context.has_key_path?(:service_instance, :id)
           Catalog::UpdateOrderItem.new(@topic, @task).process
         elsif @task.context.has_key_path?(:applied_inventories)
+          return unless @task.state == "Completed"
+
           Rails.logger.info("Creating approval request for task")
           Catalog::CreateApprovalRequest.new(@task).process
         else

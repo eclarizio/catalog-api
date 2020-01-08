@@ -40,16 +40,31 @@ describe Catalog::DetermineTaskRelevancy, :type => :service do
     end
 
     context "when the task context has a key path of [:applied_inventories]" do
-      let(:task) { TopologicalInventoryApiClient::Task.new(:context => {:applied_inventories => ["1", "2"]}) }
+      let(:task) do
+        TopologicalInventoryApiClient::Task.new(:context => {:applied_inventories => ["1", "2"]}, :state => state)
+      end
       let(:create_approval_request) { instance_double("Catalog::CreateApprovalRequest") }
 
-      before do
-        allow(Catalog::CreateApprovalRequest).to receive(:new).with(task).and_return(create_approval_request)
+      context "when the task state is completed" do
+        let(:state) { "Completed" }
+
+        before do
+          allow(Catalog::CreateApprovalRequest).to receive(:new).with(task).and_return(create_approval_request)
+        end
+
+        it "delegates to creating the approval request" do
+          expect(create_approval_request).to receive(:process)
+          subject.process
+        end
       end
 
-      it "delegates to creating the approval request" do
-        expect(create_approval_request).to receive(:process)
-        subject.process
+      context "when the task state is not completed" do
+        let(:state) { "Running" }
+
+        it "does not create an approval request" do
+          expect(Catalog::CreateApprovalRequest).not_to receive(:new)
+          subject.process
+        end
       end
     end
 
